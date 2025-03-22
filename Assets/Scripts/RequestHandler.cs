@@ -6,8 +6,33 @@ using System;
 using System.Text;
 using Models;
 
+[Serializable]
+public class ChatMessage {
+    public string role;
+    public string message;
+
+    public ChatMessage(string role, string message) {
+        this.role = role;
+        this.message = message;
+    }
+}
+
+[Serializable]
+public class ChatResponse {
+    public string arn;
+    public ReturnMessage return_message;
+}
+
+[Serializable]
+public class ReturnMessage {
+    public string role;
+    public string message;
+}
+
 public class RequestHandler : MonoBehaviour {
     [SerializeField] private string baseUrl = "http://localhost:8080"; // Replace with your actual API base URL
+    
+    private List<ChatMessage> chatLog = new List<ChatMessage>();
 
     // Start is called before the first frame update
     void Start() {
@@ -140,5 +165,100 @@ public class RequestHandler : MonoBehaviour {
     private class JsonStateResponse {
         public string arn;
         public string level;
+    }
+
+    /// <summary>
+    /// Sends a chat message to the /talk endpoint and returns the response
+    /// </summary>
+    /// <param name="arn">The ARN of the AWS component</param>
+    /// <param name="msg">The message to send</param>
+    /// <param name="callback">Callback function that receives the assistant's response message</param>
+    /// <returns>A coroutine that returns the assistant's response message</returns>
+    public virtual IEnumerator Talk(string arn, string msg, Action<string> callback) {
+        // Add the user's message to the chat log
+        chatLog.Add(new ChatMessage("user", msg));
+
+        // Create the request data
+        string jsonData = JsonUtility.ToJson(new ChatRequest {
+            arn = arn,
+            log = chatLog.ToArray()
+        });
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+        using (UnityWebRequest webRequest = new UnityWebRequest($"{baseUrl}/talk", "POST")) {
+            webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+
+            // Send the request and wait for a response
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+                webRequest.result == UnityWebRequest.Result.ProtocolError) {
+                Debug.LogError($"Error: {webRequest.error}");
+                callback(null);
+            } else {
+                // Parse the JSON response
+                string jsonResponse = webRequest.downloadHandler.text;
+                ChatResponse response = JsonUtility.FromJson<ChatResponse>(jsonResponse);
+                
+                // Add the assistant's response to the chat log
+                chatLog.Add(new ChatMessage(response.return_message.role, response.return_message.message));
+                
+                // Return the assistant's message
+                callback(response.return_message.message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clears the chat log
+    /// </summary>
+    public void ClearLog() {
+        chatLog.Clear();
+    }
+
+    /// <summary>
+    /// Calls the /chat endpoint and returns the response without requiring a user message
+    /// </summary>
+    /// <param name="arn">The ARN of the AWS component</param>
+    /// <param name="callback">Callback function that receives the assistant's response message</param>
+    /// <returns>A coroutine that returns the assistant's response message</returns>
+    public virtual IEnumerator Chat(string arn, Action<string> callback) {
+        // Create the request data with only the ARN
+        string jsonData = $"{{\"arn\": \"{arn}\"}}";
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+
+        using (UnityWebRequest webRequest = new UnityWebRequest($"{baseUrl}/chat", "POST")) {
+            webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            webRequest.SetRequestHeader("Content-Type", "application/json");
+
+            // Send the request and wait for a response
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
+                webRequest.result == UnityWebRequest.Result.ProtocolError) {
+                Debug.LogError($"Error: {webRequest.error}");
+                callback(null);
+            } else {
+                // Parse the JSON response
+                string jsonResponse = webRequest.downloadHandler.text;
+                ChatResponse response = JsonUtility.FromJson<ChatResponse>(jsonResponse);
+                
+                // Add the assistant's response to the chat log for next talk
+                chatLog.Add(new ChatMessage(response.return_message.role, response.return_message.message));
+                
+                // Return the assistant's message
+                callback(response.return_message.message);
+            }
+        }
+    }
+
+    // Helper class for chat request serialization
+    [Serializable]
+    private class ChatRequest {
+        public string arn;
+        public ChatMessage[] log;
     }
 }

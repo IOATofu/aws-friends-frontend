@@ -74,3 +74,6 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 /[Aa]ssets/LocalData
+
+/[Aa]ssets/fonts
+/[Aa]ssets/TextMesh Pro

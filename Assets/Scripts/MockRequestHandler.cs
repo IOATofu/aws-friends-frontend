@@ -133,4 +133,210 @@ public class MockRequestHandler : RequestHandler
                 return InstanceState.MIDDLE;
         }
     }
+
+    /// <summary>
+    /// Mock implementation of Chat that simulates a response from the /chat endpoint
+    /// </summary>
+    public override IEnumerator Chat(string arn, Action<string> callback)
+    {
+        // Simulate network delay
+        yield return new WaitForSeconds(0.5f);
+
+        string responseMessage = "";
+
+        // Generate a mock response based on the component type and state
+        if (arn == ec2Component.Arn)
+        {
+            responseMessage = GetMockResponseForEC2();
+        }
+        else if (arn == rdbComponent.Arn)
+        {
+            responseMessage = GetMockResponseForRDB();
+        }
+        else if (arn == albComponent.Arn)
+        {
+            responseMessage = GetMockResponseForALB();
+        }
+        else
+        {
+            Debug.LogWarning($"Unknown ARN: {arn}");
+            callback(null);
+            yield break;
+        }
+
+        // Add the assistant's response to the chat log
+        ChatMessage assistantMessage = new ChatMessage("assistant", responseMessage);
+        
+        // Use reflection to access the private chatLog field in the base class
+        System.Reflection.FieldInfo chatLogField = typeof(RequestHandler).GetField("chatLog", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (chatLogField != null)
+        {
+            List<ChatMessage> chatLog = (List<ChatMessage>)chatLogField.GetValue(this);
+            chatLog.Add(assistantMessage);
+        }
+
+        // Return the mock response
+        callback(responseMessage);
+    }
+
+    /// <summary>
+    /// Mock implementation of Talk that simulates a response from the /talk endpoint
+    /// </summary>
+    public override IEnumerator Talk(string arn, string msg, Action<string> callback)
+    {
+        // Simulate network delay
+        yield return new WaitForSeconds(0.5f);
+
+        // Use reflection to access the private chatLog field in the base class
+        System.Reflection.FieldInfo chatLogField = typeof(RequestHandler).GetField("chatLog", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (chatLogField != null)
+        {
+            List<ChatMessage> chatLog = (List<ChatMessage>)chatLogField.GetValue(this);
+            chatLog.Add(new ChatMessage("user", msg));
+        }
+
+        string responseMessage = "";
+
+        // Generate a mock response based on the component type, state, and user message
+        if (arn == ec2Component.Arn)
+        {
+            responseMessage = GetMockResponseForEC2WithMessage(msg);
+        }
+        else if (arn == rdbComponent.Arn)
+        {
+            responseMessage = GetMockResponseForRDBWithMessage(msg);
+        }
+        else if (arn == albComponent.Arn)
+        {
+            responseMessage = GetMockResponseForALBWithMessage(msg);
+        }
+        else
+        {
+            Debug.LogWarning($"Unknown ARN: {arn}");
+            callback(null);
+            yield break;
+        }
+
+        // Add the assistant's response to the chat log
+        ChatMessage assistantMessage = new ChatMessage("assistant", responseMessage);
+        if (chatLogField != null)
+        {
+            List<ChatMessage> chatLog = (List<ChatMessage>)chatLogField.GetValue(this);
+            chatLog.Add(assistantMessage);
+        }
+
+        // Return the mock response
+        callback(responseMessage);
+    }
+
+    /// <summary>
+    /// Gets a mock response for the EC2 component based on its current state
+    /// </summary>
+    private string GetMockResponseForEC2()
+    {
+        switch (ec2State)
+        {
+            case InstanceState.LOW:
+                return "EC2インスタンスの負荷は低いです。余裕があります！";
+            case InstanceState.MIDDLE:
+                return "EC2インスタンスの負荷は普通です。問題なく動作しています。";
+            case InstanceState.HIGH:
+                return "EC2インスタンスの負荷が高いです！スケールアウトを検討してください。";
+            default:
+                return "EC2インスタンスの状態を確認できません。";
+        }
+    }
+
+    /// <summary>
+    /// Gets a mock response for the RDB component based on its current state
+    /// </summary>
+    private string GetMockResponseForRDB()
+    {
+        switch (rdbState)
+        {
+            case InstanceState.LOW:
+                return "RDBの負荷は低いです。クエリの実行に問題はありません。";
+            case InstanceState.MIDDLE:
+                return "RDBの負荷は普通です。通常通り動作しています。";
+            case InstanceState.HIGH:
+                return "RDBの負荷が高いです！クエリの最適化やレプリカの追加を検討してください。";
+            default:
+                return "RDBの状態を確認できません。";
+        }
+    }
+
+    /// <summary>
+    /// Gets a mock response for the ALB component based on its current state
+    /// </summary>
+    private string GetMockResponseForALB()
+    {
+        switch (albState)
+        {
+            case InstanceState.LOW:
+                return "ALBのトラフィックは少ないです。余裕があります。";
+            case InstanceState.MIDDLE:
+                return "ALBのトラフィックは普通です。問題なく動作しています。";
+            case InstanceState.HIGH:
+                return "ALBのトラフィックが多いです！バックエンドのスケールアウトを検討してください。";
+            default:
+                return "ALBの状態を確認できません。";
+        }
+    }
+
+    /// <summary>
+    /// Gets a mock response for the EC2 component based on its current state and user message
+    /// </summary>
+    private string GetMockResponseForEC2WithMessage(string userMessage)
+    {
+        if (userMessage.Contains("調子") || userMessage.Contains("状態"))
+        {
+            return GetMockResponseForEC2();
+        }
+        else if (userMessage.Contains("スケール") || userMessage.Contains("拡張"))
+        {
+            return "EC2インスタンスをスケールアウトするには、Auto Scaling Groupを設定するか、手動で新しいインスタンスを追加できます。";
+        }
+        else
+        {
+            return "こんにちは！EC2インスタンスです。何かお手伝いできることはありますか？";
+        }
+    }
+
+    /// <summary>
+    /// Gets a mock response for the RDB component based on its current state and user message
+    /// </summary>
+    private string GetMockResponseForRDBWithMessage(string userMessage)
+    {
+        if (userMessage.Contains("調子") || userMessage.Contains("状態"))
+        {
+            return GetMockResponseForRDB();
+        }
+        else if (userMessage.Contains("バックアップ"))
+        {
+            return "RDBのバックアップは自動的に毎日取得されています。手動でバックアップを取ることもできます。";
+        }
+        else
+        {
+            return "こんにちは！RDBインスタンスです。データベースに関して何かお手伝いできることはありますか？";
+        }
+    }
+
+    /// <summary>
+    /// Gets a mock response for the ALB component based on its current state and user message
+    /// </summary>
+    private string GetMockResponseForALBWithMessage(string userMessage)
+    {
+        if (userMessage.Contains("調子") || userMessage.Contains("状態"))
+        {
+            return GetMockResponseForALB();
+        }
+        else if (userMessage.Contains("ターゲット") || userMessage.Contains("ルーティング"))
+        {
+            return "ALBのターゲットグループとルーティングルールは正常に設定されています。現在、すべてのターゲットは正常です。";
+        }
+        else
+        {
+            return "こんにちは！ALBです。ロードバランシングに関して何かお手伝いできることはありますか？";
+        }
+    }
 }
