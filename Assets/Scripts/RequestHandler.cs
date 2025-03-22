@@ -23,7 +23,7 @@ public class RequestHandler : MonoBehaviour {
     /// Gets a list of AWS components by calling the /instances endpoint
     /// </summary>
     /// <returns>A coroutine that returns a List of AwsComponent</returns>
-    public IEnumerator GetAwsComponents(Action<List<AwsComponent>> callback) {
+    public virtual IEnumerator GetAwsComponents(Action<List<AwsComponent>> callback) {
         using (UnityWebRequest webRequest = UnityWebRequest.Get($"{baseUrl}/instances")) {
             // Send the request and wait for a response
             yield return webRequest.SendWebRequest();
@@ -46,7 +46,7 @@ public class RequestHandler : MonoBehaviour {
     /// </summary>
     /// <param name="arn">The ARN of the AWS component</param>
     /// <returns>A coroutine that returns an AwsState</returns>
-    public IEnumerator GetAwsState(string arn, Action<AwsState> callback) {
+    public virtual IEnumerator GetAwsState(string arn, Action<AwsState> callback) {
         // Create the request data
         string jsonData = $"{{\"arn\": \"{arn}\"}}";
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);

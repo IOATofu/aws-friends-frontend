@@ -11,6 +11,7 @@ namespace StateManger {
         [SerializeField] private List<FriendParams> friendParams;
         [SerializeField] private InstanceState defaultState;
         [SerializeField] private float updatePeriod = 0.1f;
+        [SerializeField] private LocomotionManager locomotionManager;
         
         List<Friend> friends = new();
         Dictionary<InstanceType, GameObject> prefabs = new();
@@ -28,9 +29,11 @@ namespace StateManger {
         private void Start() {
             StartCoroutine(requestHandler.GetAwsComponents((components) => {
                 foreach (var c in components) {
-                    var friend = prefabs[c.IType].GetComponent<Friend>();
+                    if(!prefabs.ContainsKey(c.IType))
+                        continue;
+                    var friend = Instantiate(prefabs[c.IType]).GetComponent<Friend>();
                     friends.Add(friend);
-                    friend.InitFriend(c.Arn, c.InstanceName);
+                    friend.InitFriend(c.Arn, c.InstanceName, locomotionManager);
                     friend.ChangeState(defaultState);
                 }
                 isInitialized = true;
