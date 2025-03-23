@@ -27,13 +27,16 @@ namespace StateManger {
         }
         
         private void Start() {
+            Debug.Log("Started");
             StartCoroutine(requestHandler.GetAwsComponents((components) => {
+                Debug.Log("Callback");
                 foreach (var c in components) {
                     if(!prefabs.ContainsKey(c.IType))
                         continue;
                     var friend = Instantiate(prefabs[c.IType]).GetComponent<Friend>();
                     friends.Add(friend);
                     friend.InitFriend(c.Arn, c.InstanceName, locomotionManager);
+                    friend.Cost = c.Cost;
                     friend.ChangeState(defaultState);
                 }
                 isInitialized = true;
@@ -55,11 +58,16 @@ namespace StateManger {
             }
 
             while (!endRoutine) {
-                foreach (var friend in friends) {
-                    StartCoroutine(requestHandler.GetAwsState(friend.Arn, state => {
-                        friend.ChangeState(state.IState);
-                    }));
-                }
+                StartCoroutine(requestHandler.GetAwsComponents(components => {
+                    foreach (var friend in friends) {
+                        // Find the component with matching ARN
+                        var component = components.Find(c => c.Arn == friend.Arn);
+                        if (component != null) {
+                            friend.ChangeState(component.IState);
+                            friend.Cost = component.Cost;
+                        }
+                    }
+                }));
                 yield return new WaitForSeconds(updatePeriod);
             }
         }

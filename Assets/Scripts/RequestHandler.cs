@@ -67,37 +67,6 @@ public class RequestHandler : MonoBehaviour {
     }
 
     /// <summary>
-    /// Gets the state of an AWS component by calling the /load-state endpoint
-    /// </summary>
-    /// <param name="arn">The ARN of the AWS component</param>
-    /// <returns>A coroutine that returns an AwsState</returns>
-    public virtual IEnumerator GetAwsState(string arn, Action<AwsState> callback) {
-        // Create the request data
-        string jsonData = $"{{\"arn\": \"{arn}\"}}";
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
-
-        using (UnityWebRequest webRequest = new UnityWebRequest($"{baseUrl}/load-state", "POST")) {
-            webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            webRequest.downloadHandler = new DownloadHandlerBuffer();
-            webRequest.SetRequestHeader("Content-Type", "application/json");
-
-            // Send the request and wait for a response
-            yield return webRequest.SendWebRequest();
-
-            if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
-                webRequest.result == UnityWebRequest.Result.ProtocolError) {
-                Debug.LogError($"Error: {webRequest.error}");
-                callback(null);
-            } else {
-                // Parse the JSON response
-                string jsonResponse = webRequest.downloadHandler.text;
-                AwsState state = ParseAwsState(jsonResponse);
-                callback(state);
-            }
-        }
-    }
-
-    /// <summary>
     /// Parses the JSON response from the /instances endpoint into a List of AwsComponent
     /// </summary>
     /// <param name="json">The JSON response</param>
@@ -110,8 +79,23 @@ public class RequestHandler : MonoBehaviour {
 
             foreach (JsonComponent item in jsonArray.items) {
                 InstanceType instanceType;
-                if (Enum.TryParse(item.type, out instanceType)) {
-                    AwsComponent component = new AwsComponent(item.arn, item.name, instanceType);
+                InstanceState instanceState;
+                
+                if (Enum.TryParse(item.type, true, out instanceType)) {
+                    // Parse the state string to InstanceState enum
+                    if (item.state.ToLower() == "low") {
+                        instanceState = InstanceState.LOW;
+                    } else if (item.state.ToLower() == "medium" || item.state.ToLower() == "middle") {
+                        instanceState = InstanceState.MIDDLE;
+                    } else if (item.state.ToLower() == "high") {
+                        instanceState = InstanceState.HIGH;
+                    } else {
+                        Debug.LogWarning($"Unknown instance state: {item.state}, defaulting to MIDDLE");
+                        instanceState = InstanceState.MIDDLE;
+                    }
+                    
+                    // Create a new AwsComponent with the parsed type, state, and cost
+                    AwsComponent component = new AwsComponent(item.arn, item.name, instanceType, instanceState, item.cost);
                     components.Add(component);
                 } else {
                     Debug.LogWarning($"Unknown instance type: {item.type}");
@@ -125,29 +109,6 @@ public class RequestHandler : MonoBehaviour {
         }
     }
 
-    /// <summary>
-    /// Parses the JSON response from the /load-state endpoint into an AwsState
-    /// </summary>
-    /// <param name="json">The JSON response</param>
-    /// <returns>An AwsState</returns>
-    private AwsState ParseAwsState(string json) {
-        try {
-            // Parse the JSON object
-            JsonStateResponse stateResponse = JsonUtility.FromJson<JsonStateResponse>(json);
-            
-            InstanceState state;
-            if (Enum.TryParse(stateResponse.level.ToUpper(), out state)) {
-                return new AwsState(stateResponse.arn, "", state); // Name is not provided in the response
-            } else {
-                Debug.LogWarning($"Unknown instance state: {stateResponse.level}");
-                return null;
-            }
-        } catch (Exception e) {
-            Debug.LogError($"Error parsing AWS state: {e.Message}");
-            return null;
-        }
-    }
-
     // Helper classes for JSON deserialization
     [Serializable]
     private class JsonArray {
@@ -157,14 +118,10 @@ public class RequestHandler : MonoBehaviour {
     [Serializable]
     private class JsonComponent {
         public string type;
+        public string arn;
         public string name;
-        public string arn;
-    }
-
-    [Serializable]
-    private class JsonStateResponse {
-        public string arn;
-        public string level;
+        public string state;
+        public float cost;
     }
 
     /// <summary>
@@ -204,7 +161,7 @@ public class RequestHandler : MonoBehaviour {
                 
                 // Add the assistant's response to the chat log
                 chatLog.Add(new ChatMessage(response.return_message.role, response.return_message.message));
-                
+                Debug.Log(jsonResponse);
                 // Return the assistant's message
                 callback(response.return_message.message);
             }
@@ -225,25 +182,41 @@ public class RequestHandler : MonoBehaviour {
     /// <param name="callback">Callback function that receives the assistant's response message</param>
     /// <returns>A coroutine that returns the assistant's response message</returns>
     public virtual IEnumerator Chat(string arn, Action<string> callback) {
-        // Create the request data with only the ARN
-        string jsonData = $"{{\"arn\": \"{arn}\"}}";
-        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+        // Create the request data with only the ARN in form-urlencoded format
+        string formData = $"arn={UnityWebRequest.EscapeURL(arn)}";
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(formData);
 
         using (UnityWebRequest webRequest = new UnityWebRequest($"{baseUrl}/chat", "POST")) {
             webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
             webRequest.downloadHandler = new DownloadHandlerBuffer();
-            webRequest.SetRequestHeader("Content-Type", "application/json");
+            webRequest.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            // Debug logging - detailed request information
+            Debug.Log($"[DEBUG] Chat Request URL: {baseUrl}/chat");
+            Debug.Log($"[DEBUG] Chat Request Method: POST");
+            Debug.Log($"[DEBUG] Chat Request Headers: Content-Type: application/x-www-form-urlencoded");
+            Debug.Log($"[DEBUG] Chat Request Body: {formData}");
 
             // Send the request and wait for a response
             yield return webRequest.SendWebRequest();
 
             if (webRequest.result == UnityWebRequest.Result.ConnectionError ||
                 webRequest.result == UnityWebRequest.Result.ProtocolError) {
-                Debug.LogError($"Error: {webRequest.error}");
+                // Debug logging - detailed error information
+                Debug.LogError($"[DEBUG] Chat Request Error: {webRequest.error}");
+                Debug.LogError($"[DEBUG] Chat Response Code: {webRequest.responseCode}");
+                if (webRequest.downloadHandler != null && webRequest.downloadHandler.text != null) {
+                    Debug.LogError($"[DEBUG] Chat Error Response Body: {webRequest.downloadHandler.text}");
+                }
                 callback(null);
             } else {
                 // Parse the JSON response
                 string jsonResponse = webRequest.downloadHandler.text;
+                
+                // Debug logging - detailed response information
+                Debug.Log($"[DEBUG] Chat Response Status: {webRequest.responseCode}");
+                Debug.Log($"[DEBUG] Chat Response Body: {jsonResponse}");
+                
                 ChatResponse response = JsonUtility.FromJson<ChatResponse>(jsonResponse);
                 
                 // Add the assistant's response to the chat log for next talk

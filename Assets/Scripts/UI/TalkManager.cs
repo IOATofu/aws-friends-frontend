@@ -52,7 +52,7 @@ public class TalkManager : MonoBehaviour {
         Debug.Log($"Looking for objects on layer: {layer} (Layer index: {LayerMask.NameToLayer(layer)}, Mask: {layerMask})");
         
         // First try without layer mask to see if we're hitting anything at all
-        if (Physics.Raycast(ray, out hit, 100f))
+        if (Physics.Raycast(ray, out hit, 1000f))
         {
             Debug.Log($"Hit something: {hit.collider.gameObject.name} on layer {LayerMask.LayerToName(hit.collider.gameObject.layer)}");
             
@@ -111,6 +111,9 @@ public class TalkManager : MonoBehaviour {
         isTalking = true;
         currentFriend = friend;
         
+        // Stop the friend's movement when conversation begins
+        currentFriend.StopMovement();
+        
         // Clear previous conversation logs
         requestHandler.ClearLog();
         
@@ -125,21 +128,31 @@ public class TalkManager : MonoBehaviour {
     }
     
     // Coroutine to start conversation after ensuring the message window is active
-    private IEnumerator StartConversationAfterActivation()
-    {
+    private IEnumerator StartConversationAfterActivation() {
+        Debug.Log("StartConversationAfterActivation: Waiting for message window to be active and enabled");
+        yield return new WaitUntil(() => messageWindow.isActiveAndEnabled);
+        Debug.Log("StartConversationAfterActivation: Message window is now active and enabled");
+        
         // Wait for the end of the frame to ensure the GameObject is fully activated
         yield return new WaitForEndOfFrame();
+        Debug.Log("StartConversationAfterActivation: Waited for end of frame");
         
         // If talkOnClick is enabled, automatically start conversation
         if (talkOnClick && currentFriend != null)
         {
-            Debug.Log("Starting initial conversation");
+            Debug.Log($"Starting initial conversation with friend: {currentFriend.name}, ARN: {currentFriend.Arn}");
             
             // Show thinking message
+            Debug.Log($"Displaying thinking message: {thinkingText}");
             messageWindow.OnText(thinkingText);
             
             // Start initial chat
+            Debug.Log("Starting initial chat request");
             StartCoroutine(requestHandler.Chat(currentFriend.Arn, OnChatResponse));
+        }
+        else
+        {
+            Debug.LogWarning($"Not starting initial conversation. talkOnClick: {talkOnClick}, currentFriend: {currentFriend}");
         }
     }
     
@@ -148,6 +161,12 @@ public class TalkManager : MonoBehaviour {
     {
         if (!isTalking)
             return;
+        
+        // Resume the friend's movement when conversation ends
+        if (currentFriend != null)
+        {
+            currentFriend.ResumeMovement();
+        }
             
         isTalking = false;
         currentFriend = null;
@@ -196,28 +215,44 @@ public class TalkManager : MonoBehaviour {
     {
         if (response != null && messageWindow != null)
         {
+            Debug.Log($"Received chat response: {response}");
+            
             // Make sure message window is active
             if (!messageWindow.gameObject.activeInHierarchy)
             {
+                Debug.Log("Message window not active, activating it now");
                 messageWindow.gameObject.SetActive(true);
                 // Use coroutine to ensure GameObject is active before showing message
                 StartCoroutine(ShowResponseAfterActivation(response));
             }
             else
             {
+                Debug.Log("Message window already active, displaying response directly");
                 // Display the response in the message window
                 messageWindow.OnText(response);
             }
+        }
+        else
+        {
+            Debug.LogError($"Invalid chat response or message window: response={response}, messageWindow={messageWindow}");
         }
     }
     
     // Coroutine to show response after ensuring the message window is active
     private IEnumerator ShowResponseAfterActivation(string response)
     {
+        Debug.Log("ShowResponseAfterActivation: Waiting for message window to be active");
+        
+        // Wait until the message window is active and enabled
+        yield return new WaitUntil(() => messageWindow.isActiveAndEnabled);
+        Debug.Log("ShowResponseAfterActivation: Message window is now active");
+        
         // Wait for the end of the frame to ensure the GameObject is fully activated
         yield return new WaitForEndOfFrame();
+        Debug.Log("ShowResponseAfterActivation: Waited for end of frame");
         
         // Display the response in the message window
+        Debug.Log($"ShowResponseAfterActivation: Displaying response: {response}");
         messageWindow.OnText(response);
     }
 }

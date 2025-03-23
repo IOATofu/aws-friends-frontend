@@ -24,6 +24,14 @@ public class MockRequestHandler : RequestHandler
     [SerializeField] private InstanceState rdbState = InstanceState.MIDDLE;
     [Tooltip("Current state of the ALB instance")]
     [SerializeField] private InstanceState albState = InstanceState.MIDDLE;
+    
+    [Header("Instance Costs")]
+    [Tooltip("Cost of the EC2 instance (in dollars)")]
+    [SerializeField] private float ec2Cost = 0.5f;
+    [Tooltip("Cost of the RDB instance (in dollars)")]
+    [SerializeField] private float rdbCost = 2.6f;
+    [Tooltip("Cost of the ALB instance (in dollars)")]
+    [SerializeField] private float albCost = 1.2f;
 
     // Public properties to access current states
     public InstanceState EC2State => ec2State;
@@ -32,19 +40,24 @@ public class MockRequestHandler : RequestHandler
 
     private void Awake()
     {
-        // Initialize mock AWS components
-        ec2Component = new AwsComponent("arn:aws:ec2:us-west-2:123456789012:instance/i-1234567890abcdef0", "Mock-EC2", InstanceType.EC2);
-        rdbComponent = new AwsComponent("arn:aws:rds:us-west-2:123456789012:db:mock-db", "Mock-RDB", InstanceType.RDB);
-        albComponent = new AwsComponent("arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/mock-alb/1234567890abcdef", "Mock-ALB", InstanceType.ALB);
+        // Initialize mock AWS components with their states and costs
+        ec2Component = new AwsComponent("arn:aws:ec2:us-west-2:123456789012:instance/i-1234567890abcdef0", "Mock-EC2", InstanceType.EC2, ec2State, ec2Cost);
+        rdbComponent = new AwsComponent("arn:aws:rds:us-west-2:123456789012:db:mock-db", "Mock-RDB", InstanceType.RDS, rdbState, rdbCost);
+        albComponent = new AwsComponent("arn:aws:elasticloadbalancing:us-west-2:123456789012:loadbalancer/app/mock-alb/1234567890abcdef", "Mock-ALB", InstanceType.ALB, albState, albCost);
     }
 
     /// <summary>
-    /// Mock implementation of GetAwsComponents that returns predefined components
+    /// Mock implementation of GetAwsComponents that returns predefined components with their current states
     /// </summary>
     public override IEnumerator GetAwsComponents(Action<List<AwsComponent>> callback)
     {
         // Simulate network delay
         yield return new WaitForSeconds(0.5f);
+
+        // Update components with current states and costs
+        ec2Component = new AwsComponent(ec2Component.Arn, ec2Component.InstanceName, ec2Component.IType, ec2State, ec2Cost);
+        rdbComponent = new AwsComponent(rdbComponent.Arn, rdbComponent.InstanceName, rdbComponent.IType, rdbState, rdbCost);
+        albComponent = new AwsComponent(albComponent.Arn, albComponent.InstanceName, albComponent.IType, albState, albCost);
 
         // Create a list of mock AWS components
         List<AwsComponent> components = new List<AwsComponent>
@@ -56,34 +69,6 @@ public class MockRequestHandler : RequestHandler
 
         // Return the mock components
         callback(components);
-    }
-
-    /// <summary>
-    /// Mock implementation of GetAwsState that returns predefined states based on component ARN
-    /// </summary>
-    public override IEnumerator GetAwsState(string arn, Action<AwsState> callback)
-    {
-        // Simulate network delay
-        yield return new WaitForSeconds(0.5f);
-
-        // Determine which component is being requested and return the appropriate state
-        if (arn == ec2Component.Arn)
-        {
-            callback(new AwsState(arn, ec2Component.InstanceName, ec2State));
-        }
-        else if (arn == rdbComponent.Arn)
-        {
-            callback(new AwsState(arn, rdbComponent.InstanceName, rdbState));
-        }
-        else if (arn == albComponent.Arn)
-        {
-            callback(new AwsState(arn, albComponent.InstanceName, albState));
-        }
-        else
-        {
-            Debug.LogWarning($"Unknown ARN: {arn}");
-            callback(null);
-        }
     }
 
     /// <summary>

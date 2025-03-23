@@ -12,7 +12,7 @@ public class MessageWindow : MonoBehaviour
     
     void Start()
     {
-        gameObject.SetActive(false); // Start with message window disabled
+        // No need to set active state here, TalkManager will control it
     }
 
     void Update()
@@ -23,12 +23,24 @@ public class MessageWindow : MonoBehaviour
     // Display text sequentially with the specified speed
     public void OnText(string message)
     {
+        Debug.Log($"MessageWindow.OnText called with message: {message}");
+        
         // Set the text immediately in case we can't start the coroutine
-        text.text = message;
+        if (text != null)
+        {
+            text.text = message;
+        }
+        else
+        {
+            Debug.LogError("Text component is null in MessageWindow");
+            return;
+        }
         
         // Only start the coroutine if the GameObject is active
         if (gameObject.activeInHierarchy)
         {
+            Debug.Log("MessageWindow is active, starting text display coroutine");
+            
             // Stop any existing text display coroutine
             if (displayTextCoroutine != null)
             {
@@ -40,8 +52,28 @@ public class MessageWindow : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("Cannot start coroutine on inactive MessageWindow GameObject");
+            Debug.LogWarning("Cannot start coroutine on inactive MessageWindow GameObject. Activating now.");
+            gameObject.SetActive(true);
+            
+            // Try again after activation
+            StartCoroutine(DisplayAfterActivation(message));
         }
+    }
+    
+    // Coroutine to display text after ensuring the GameObject is active
+    private IEnumerator DisplayAfterActivation(string message)
+    {
+        // Wait a frame to ensure the GameObject is fully activated
+        yield return new WaitForEndOfFrame();
+        
+        // Stop any existing text display coroutine
+        if (displayTextCoroutine != null)
+        {
+            StopCoroutine(displayTextCoroutine);
+        }
+        
+        // Start new text display coroutine
+        displayTextCoroutine = StartCoroutine(DisplayTextSequentially(message));
     }
     
     // Coroutine to display text character by character

@@ -2803,6 +2803,37 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: 982b47466246af745801eed9f1623244, type: 3}
   m_PrefabInstance: {fileID: 415894897}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &426768017
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 426768018}
+  m_Layer: 0
+  m_Name: LocLeft
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &426768018
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426768017}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -154, y: -6, z: -73}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &438221176
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3078,7 +3109,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 170cdde0a040a0749a109c3e86b6e32b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseUrl: http://localhost:8080
+  baseUrl: https://aws-friends.k1h.dev
 --- !u!4 &445056622
 Transform:
   m_ObjectHideFlags: 0
@@ -4585,7 +4616,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\n\u3042\u3042\u3042\u3042\u3042\u3042\u3042\n\u3042\u3042\u3042\u3042\u3042\n\u3042\u3042\u3042\u3042\u3042\n\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\u3042\n\u3042\u3042\u3042\u3042\u3042\u3042\u3042\n\u3042\u3042\u3042\u3042\u3042\n\u3042\u3042\u3042\u3042\u3042"
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: abe131bf770ea8444a4bec4b88e9b942, type: 2}
   m_sharedMaterial: {fileID: 8915104578894112120, guid: abe131bf770ea8444a4bec4b88e9b942, type: 2}
@@ -4612,8 +4643,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 35
+  m_fontSizeBase: 35
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -4630,7 +4661,7 @@ MonoBehaviour:
   m_charWidthMaxAdj: 0
   m_enableWordWrapping: 1
   m_wordWrappingRatios: 0.4
-  m_overflowMode: 3
+  m_overflowMode: 4
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 1
@@ -6924,8 +6955,12 @@ MonoBehaviour:
   friendParams:
   - iType: 0
     charaPrefab: {fileID: 7664609511789103544, guid: c1d68df5a79d926439ccd4dc1ef154d1, type: 3}
+  - iType: 1
+    charaPrefab: {fileID: 8272216799303521081, guid: 87215aeb54a326f4999d00c6d6cba3c1, type: 3}
+  - iType: 2
+    charaPrefab: {fileID: 4259515998806104964, guid: 8393648a9c9cd18449f74ece7944ce66, type: 3}
   defaultState: 1
-  updatePeriod: 0.1
+  updatePeriod: 1
   locomotionManager: {fileID: 1639739416}
 --- !u!1001 &1053898145
 PrefabInstance:
@@ -7391,6 +7426,9 @@ MonoBehaviour:
   ec2State: 1
   rdbState: 1
   albState: 1
+  ec2Cost: 0.5
+  rdbCost: 5
+  albCost: 1.2
 --- !u!1001 &1091573442
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8030,8 +8068,39 @@ Transform:
   - {fileID: 1639739417}
   - {fileID: 445056622}
   - {fileID: 1046460001}
-  - {fileID: 1088234938}
   - {fileID: 1493983166}
+  - {fileID: 1088234938}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1183740189
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1183740190}
+  m_Layer: 0
+  m_Name: LocRight
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1183740190
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1183740189}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 199, y: -6, z: -103}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1184282445
@@ -10095,7 +10164,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1479381140}
   m_Layer: 0
-  m_Name: Right
+  m_Name: CamRight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -10417,7 +10486,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1498505805}
   - component: {fileID: 1498505807}
-  - component: {fileID: 1498505806}
   m_Layer: 0
   m_Name: Field
   m_TagString: Untagged
@@ -10442,33 +10510,6 @@ Transform:
   - {fileID: 269952924}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!54 &1498505806
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1498505804}
-  serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!65 &1498505807
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -10616,7 +10657,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1507282949}
   m_Layer: 0
-  m_Name: Left
+  m_Name: CamLeft
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -11373,13 +11414,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cbdc4c4a8f577c4ca530626423032ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  locomotionPoints:
-  - {fileID: 1133972215}
-  - {fileID: 1276278210}
-  - {fileID: 1491364792}
-  - {fileID: 1520145130}
-  - {fileID: 1781310682}
-  - {fileID: 1083875102}
+  p1: {fileID: 426768018}
+  p2: {fileID: 1183740190}
+  y: 0
+  gizmoColor: {r: 0, g: 0, b: 1, a: 1}
 --- !u!4 &1639739417
 Transform:
   m_ObjectHideFlags: 0
@@ -14652,3 +14690,5 @@ SceneRoots:
   - {fileID: 1479381140}
   - {fileID: 788498923}
   - {fileID: 1592834831}
+  - {fileID: 426768018}
+  - {fileID: 1183740190}

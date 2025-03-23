@@ -10,7 +10,7 @@ namespace Character {
         [SerializeField] private string animatorParamName = "level";
         [SerializeField] private InstanceType iType;
         [SerializeField] private List<FriendAnim> anim;
-        [SerializeField] private CharacterController characterController;
+        [SerializeField] private CapsuleCollider capsuleCollider;
         [SerializeField] private float speed = 2.0f;
         [SerializeField] private float randomMoveMinTime = 3.0f;
         [SerializeField] private float randomMoveMaxTime = 10.0f;
@@ -19,6 +19,7 @@ namespace Character {
 
         private string arn;
         private string name;
+        private float cost;
         
         private Dictionary<InstanceState, FriendAnim> animDict = new();
         private Animator animator;
@@ -26,9 +27,17 @@ namespace Character {
         private Vector3 targetPosition;
         private bool isMoving = false;
         private float nextMoveTime = 0f;
-        private Action exitCallback = () => {};
+        private InstanceState currentState;
+        private bool movementEnabled = true;
+        private Coroutine randomRoutineCoroutine;
+        private Coroutine moveCoroutine;
+        private Coroutine rotateCoroutine;
         
         private void Start() {
+            // Set capsuleCollider to trigger mode
+            if (capsuleCollider != null) {
+                capsuleCollider.isTrigger = true;
+            }
         }
 
         private void Update() {
@@ -44,8 +53,13 @@ namespace Character {
             this.name = name;
             this.locomotionManager = locomotionManager;
             animator = GetComponent<Animator>();
+            
+            // Initialize currentState to ensure proper state tracking
+            // It will be properly set when ChangeState is first called
+            currentState = InstanceState.MIDDLE; // Default initial state
+            
             // Start the random movement routine after a random delay
-            StartCoroutine(StartRandomRoutine());
+            randomRoutineCoroutine = StartCoroutine(StartRandomRoutine());
         }
 
         public string Arn => arn;
@@ -53,31 +67,87 @@ namespace Character {
         public string Name => name;
 
         public InstanceType IType => iType;
+        
+        public float Cost { get; set; }
 
         public void ChangeState(InstanceState state) {
-            exitCallback?.Invoke();
+            // Skip if state hasn't changed
+            // if (currentState == state) return;
+            
+            // Call OnExit for the current state (if any)
+            if (animDict.ContainsKey(currentState)) {
+                animDict[currentState].OnExit();
+            }
+            
+            // Update current state
+            currentState = state;
+            
+            // Update animator and call OnChanged for the new state
             animator.SetInteger(animatorParamName, animDict[state].AnimP);
             animDict[state].OnChanged();
-            exitCallback = animDict[state].OnExit;
         }
 
-        public void Chat(string prompt) {
-            // TODO Implement later: DO NOT TOUCH!!!!!!
+        // Public methods to stop and resume movement
+        public void StopMovement() {
+            if (!movementEnabled) return; // Already stopped
+            
+            movementEnabled = false;
+            isMoving = false;
+            
+            // Stop animation
+            if (animator != null) {
+                animator.SetFloat("walkSpeed", 0);
+            }
+            
+            // Stop all movement coroutines
+            if (randomRoutineCoroutine != null) {
+                StopCoroutine(randomRoutineCoroutine);
+                randomRoutineCoroutine = null;
+            }
+            
+            if (moveCoroutine != null) {
+                StopCoroutine(moveCoroutine);
+                moveCoroutine = null;
+            }
+            
+            if (rotateCoroutine != null) {
+                StopCoroutine(rotateCoroutine);
+                rotateCoroutine = null;
+            }
+            
+            // Face default direction when stopping
+            rotateCoroutine = StartCoroutine(RotateToDefaultDirection());
         }
-
+        
+        public void ResumeMovement() {
+            if (movementEnabled) return; // Already moving
+            
+            movementEnabled = true;
+            
+            // Start random movement again
+            randomRoutineCoroutine = StartCoroutine(StartRandomRoutine());
+        }
+        
         // Coroutine to start the random movement routine with a delay
         private IEnumerator StartRandomRoutine() {
             // Wait for a random time before starting the movement
             yield return new WaitForSeconds(UnityEngine.Random.Range(randomMoveMinTime, randomMoveMaxTime));
-            RandomRoutine();
+            
+            // Only continue if movement is enabled
+            if (movementEnabled) {
+                RandomRoutine();
+            }
         }
 
         void RandomRoutine() {
+            // Only move if movement is enabled
+            if (!movementEnabled) return;
+            
             // Call RandomLocomotion to start moving to a random point
             RandomLocomotion();
             
             // Start the movement coroutine
-            StartCoroutine(MoveToDestination());
+            moveCoroutine = StartCoroutine(MoveToDestination());
         }
 
         void RandomLocomotion() {
@@ -102,18 +172,21 @@ namespace Character {
                     animator.SetFloat("walkSpeed", 0);
                     
                     // Rotate to default direction before scheduling next movement
-                    StartCoroutine(RotateToDefaultDirection());
+                    rotateCoroutine = StartCoroutine(RotateToDefaultDirection());
                     
                     // Schedule the next random movement after a delay
-                    StartCoroutine(StartRandomRoutine());
+                    // Only start if movement is enabled
+                    if (movementEnabled) {
+                        randomRoutineCoroutine = StartCoroutine(StartRandomRoutine());
+                    }
                     yield break;
                 }
                 
                 // Normalize direction and apply speed
-                Vector3 velocity = direction.normalized * speed;
+                Vector3 velocity = direction.normalized * (speed * InstanceStateHelper.InstanceStateSpeeder(currentState));
                 
-                // Move the character using CharacterController
-                characterController.SimpleMove(velocity);
+                // Move the character by updating transform position directly
+                transform.position += velocity * Time.deltaTime;
                 
                 // Update the animator speed parameter
                 animator.SetFloat("walkSpeed", velocity.magnitude);
