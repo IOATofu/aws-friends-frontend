@@ -33,10 +33,23 @@ public class MockRequestHandler : RequestHandler
     [Tooltip("Cost of the ALB instance (in dollars)")]
     [SerializeField] private float albCost = 1.2f;
 
+    [Header("Instance Existence")]
+    [Tooltip("Whether the EC2 instance exists")]
+    [SerializeField] private bool ec2Exists = true;
+    [Tooltip("Whether the RDB instance exists")]
+    [SerializeField] private bool rdbExists = true;
+    [Tooltip("Whether the ALB instance exists")]
+    [SerializeField] private bool albExists = true;
+
     // Public properties to access current states
     public InstanceState EC2State => ec2State;
     public InstanceState RDBState => rdbState;
     public InstanceState ALBState => albState;
+    
+    // Public properties to access existence status
+    public bool EC2Exists => ec2Exists;
+    public bool RDBExists => rdbExists;
+    public bool ALBExists => albExists;
 
     private void Awake()
     {
@@ -59,16 +72,53 @@ public class MockRequestHandler : RequestHandler
         rdbComponent = new AwsComponent(rdbComponent.Arn, rdbComponent.InstanceName, rdbComponent.IType, rdbState, rdbCost);
         albComponent = new AwsComponent(albComponent.Arn, albComponent.InstanceName, albComponent.IType, albState, albCost);
 
-        // Create a list of mock AWS components
-        List<AwsComponent> components = new List<AwsComponent>
+        // Create a list of mock AWS components based on existence flags
+        List<AwsComponent> components = new List<AwsComponent>();
+        
+        if (ec2Exists)
         {
-            ec2Component,
-            rdbComponent,
-            albComponent
-        };
+            components.Add(ec2Component);
+        }
+        
+        if (rdbExists)
+        {
+            components.Add(rdbComponent);
+        }
+        
+        if (albExists)
+        {
+            components.Add(albComponent);
+        }
 
         // Return the mock components
         callback(components);
+    }
+    
+    /// <summary>
+    /// Toggles the existence of the EC2 instance
+    /// </summary>
+    public void ToggleEC2Existence()
+    {
+        ec2Exists = !ec2Exists;
+        Debug.Log($"EC2 instance {(ec2Exists ? "added" : "removed")}");
+    }
+    
+    /// <summary>
+    /// Toggles the existence of the RDB instance
+    /// </summary>
+    public void ToggleRDBExistence()
+    {
+        rdbExists = !rdbExists;
+        Debug.Log($"RDB instance {(rdbExists ? "added" : "removed")}");
+    }
+    
+    /// <summary>
+    /// Toggles the existence of the ALB instance
+    /// </summary>
+    public void ToggleALBExistence()
+    {
+        albExists = !albExists;
+        Debug.Log($"ALB instance {(albExists ? "added" : "removed")}");
     }
 
     /// <summary>
